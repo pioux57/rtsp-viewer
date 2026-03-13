@@ -215,7 +215,7 @@ class rtspviewer:
 
                 if index < len(self.streams):
 
-                    media = self.instance.media_new(self.streams[index])
+                    media = self.instance.media_new(self.streams[index]['url'])
                     player.set_media(media)
                     player.play()
 
@@ -275,7 +275,7 @@ class rtspviewer:
 
         # Cycle streams toggle button
         self.rotate_checkbox = tk.Checkbutton(
-            root,
+            self.scrollable_frame,
             text="Cycle streams",
             variable=self.rotation_enabled,
             command=self.toggle_rotation
@@ -284,7 +284,7 @@ class rtspviewer:
 
         # Enable grid mode
         self.grid_checkbox = tk.Checkbutton(
-            root,
+            self.scrollable_frame,
             text="Grid view (2x2)",
             variable=self.grid_enabled,
             command=self.toggle_grid
