@@ -85,6 +85,12 @@ class rtspviewer:
         self.video_frame = tk.Frame(root, bg="black")
         self.video_frame.pack(side="right", fill="both", expand=True)
 
+        self.single_container = tk.Frame(self.video_frame)
+        self.single_container.pack(fill="both", expand=True)
+        self.grid_container = tk.Frame(self.video_frame)
+        self.video_panel = tk.Frame(self.single_container, bg="black")
+        self.video_panel.pack(fill="both", expand=True)
+
         # ---------- VLC ----------
         self.instance = vlc.Instance(
             "--network-caching=400",
@@ -100,7 +106,8 @@ class rtspviewer:
         self.player = self.instance.media_player_new()
 
         self.root.update_idletasks()
-        self.player.set_xwindow(self.video_frame.winfo_id())
+        #self.player.set_xwindow(self.video_frame.winfo_id())
+        self.player.set_hwnd(self.video_panel.winfo_id())
 
         # ---------- Load config ----------
         self.streams = self.load_config()
@@ -172,27 +179,27 @@ class rtspviewer:
     # Toggle Grid view
     # ================================
     def toggle_grid(self):
-
         if self.grid_enabled.get():
-
             # stop rotation
             self.rotation_enabled.set(False)
-
-            # stop main player
-            self.player.stop()
-
             if self.rotation_job:
                 self.root.after_cancel(self.rotation_job)
-                self.rotation_job = None
-
-            # Emptying the widgets
-            for widget in self.video_frame.winfo_children():
-                widget.destroy()
-
+            # stop player principal
+            self.player.stop()
+            # masquer vue simple
+            self.single_container.pack_forget()
+            # afficher grille
+            self.grid_container.pack(fill="both", expand=True)
             self.create_grid()
-
         else:
             self.destroy_grid()
+            # masquer grille
+            self.grid_container.pack_forget()
+            # réafficher vue normale
+            self.single_container.pack(fill="both", expand=True)
+            self.root.update_idletasks()
+            self.player.set_hwnd(self.video_panel.winfo_id())
+            self.open_stream(self.streams[self.current_stream])
 
     # ================================
     # Grid view
@@ -201,25 +208,21 @@ class rtspviewer:
 
         self.grid_players = []
         self.grid_frames = []
-
-        grid_window = tk.Frame(self.video_frame)
-        grid_window.pack(fill="both", expand=True)
-
-        index = 0
-
         for r in range(2):
             for c in range(2):
 
-                frame = tk.Frame(grid_window, bg="black")
+                frame = tk.Frame(self.grid_container, bg="black")
                 frame.grid(row=r, column=c, sticky="nsew")
 
-                grid_window.grid_rowconfigure(r, weight=1)
-                grid_window.grid_columnconfigure(c, weight=1)
-
-                player = self.instance.media_player_new()
+                self.grid_container.grid_rowconfigure(r, weight=1)
+                self.grid_container.grid_columnconfigure(c, weight=1)
 
                 self.root.update_idletasks()
+
+                player = self.instance.media_player_new()
                 player.set_hwnd(frame.winfo_id())
+
+                index = r * 2 + c
 
                 if index < len(self.streams):
 
@@ -230,18 +233,18 @@ class rtspviewer:
                 self.grid_players.append(player)
                 self.grid_frames.append(frame)
 
-                index += 1
-
     def destroy_grid(self):
 
         if hasattr(self, "grid_players"):
-
             for p in self.grid_players:
                 p.stop()
 
         for f in getattr(self, "grid_frames", []):
             f.destroy()
 
+        self.grid_players = []
+        self.grid_frames = []
+        
     # ================================
     # Config
     # ================================
@@ -290,6 +293,7 @@ class rtspviewer:
             bg="#2b2b2b",
             fg="white",
             relief="flat",
+            border=0,
             font=("Arial", 12)
         )
         self.rotate_checkbox.pack(anchor="w", padx=5, pady=5)
@@ -303,6 +307,7 @@ class rtspviewer:
             bg="#2b2b2b",
             fg="white",
             relief="flat",
+            border=0,
             font=("Arial", 12)
         )
         self.grid_checkbox.pack(anchor="w", padx=5, pady=2)
