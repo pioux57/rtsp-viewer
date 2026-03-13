@@ -119,6 +119,8 @@ class rtspviewer:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        self.nbstreams = len(self.streams)
+
         # Auto start
         if self.streams:
             self.play_stream(self.streams[0]["url"])
@@ -367,13 +369,15 @@ class rtspviewer:
         if not self.streams:
             return
 
-        self.current_stream = (self.current_stream + 1) % len(self.streams)
-
+        # self.current_stream = (self.current_stream + 1) % len(self.streams)
+        if self.current_stream >= self.nbstreams: self.current_stream = 0
         url = self.streams[self.current_stream]['url']
 
         media = self.instance.media_new(url)
         self.player.set_media(media)
         self.player.play()
+        
+        self.current_stream += 1
 
     # ================================
     # Cleanup
