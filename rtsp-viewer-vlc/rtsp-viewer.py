@@ -106,8 +106,7 @@ class rtspviewer:
         self.player = self.instance.media_player_new()
 
         self.root.update_idletasks()
-        #self.player.set_xwindow(self.video_frame.winfo_id())
-        self.player.set_hwnd(self.video_panel.winfo_id())
+        self.player.set_xwindow(self.video_panel.winfo_id())
 
         # ---------- Load config ----------
         self.streams = self.load_config()
@@ -244,7 +243,7 @@ class rtspviewer:
 
         self.grid_players = []
         self.grid_frames = []
-        
+
     # ================================
     # Config
     # ================================
@@ -293,7 +292,7 @@ class rtspviewer:
             bg="#2b2b2b",
             fg="white",
             relief="flat",
-            border=0,
+            borderwidth=0,
             font=("Arial", 12)
         )
         self.rotate_checkbox.pack(anchor="w", padx=5, pady=5)
@@ -307,7 +306,7 @@ class rtspviewer:
             bg="#2b2b2b",
             fg="white",
             relief="flat",
-            border=0,
+            borderwidth=0,
             font=("Arial", 12)
         )
         self.grid_checkbox.pack(anchor="w", padx=5, pady=2)
