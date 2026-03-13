@@ -20,6 +20,12 @@ class rtspviewer:
         self.root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.root.minsize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
+        self.current_stream     = 0         # Current stream displayed
+        self.switch_interval    = 5000      # in milliseconds (5000ms = 5s)
+        self.rotation_enabled   = tk.BooleanVar(value=False)
+        self.grid_enabled       = tk.BooleanVar(value=False)
+        self.rotation_job       = None
+
         self.current_url = None
         self.sidebar_visible = True
         self.fullscreen = False
@@ -147,6 +153,88 @@ class rtspviewer:
         self.root.attributes("-fullscreen", False)
 
     # ================================
+    # Enable cycle streams
+    # ================================
+    def toggle_rotation(self):
+
+        if self.rotation_enabled.get():
+            # Disable grid
+            self.grid_enabled.set(False)
+            self.destroy_grid()
+            self.schedule_rotation()
+        else:
+            if self.rotation_job:
+                self.root.after_cancel(self.rotation_job)
+                self.rotation_job = None
+
+    # ================================
+    # Toggle Grid view
+    # ================================
+    def toggle_grid(self):
+
+        if self.grid_enabled.get():
+
+            # stop rotation
+            self.rotation_enabled.set(False)
+
+            if self.rotation_job:
+                self.root.after_cancel(self.rotation_job)
+                self.rotation_job = None
+
+            self.create_grid()
+
+        else:
+            self.destroy_grid()
+
+    # ================================
+    # Grid view
+    # ================================
+    def create_grid(self):
+
+        self.grid_players = []
+        self.grid_frames = []
+
+        grid_window = tk.Frame(self.video_frame)
+        grid_window.pack(fill="both", expand=True)
+
+        index = 0
+
+        for r in range(2):
+            for c in range(2):
+
+                frame = tk.Frame(grid_window, bg="black")
+                frame.grid(row=r, column=c, sticky="nsew")
+
+                grid_window.grid_rowconfigure(r, weight=1)
+                grid_window.grid_columnconfigure(c, weight=1)
+
+                player = vlc.MediaPlayer()
+
+                frame.update()
+                player.set_hwnd(frame.winfo_id())
+
+                if index < len(self.streams):
+
+                    media = self.instance.media_new(self.streams[index])
+                    player.set_media(media)
+                    player.play()
+
+                self.grid_players.append(player)
+                self.grid_frames.append(frame)
+
+                index += 1
+
+    def destroy_grid(self):
+
+        if hasattr(self, "grid_players"):
+
+            for p in self.grid_players:
+                p.stop()
+
+        for f in getattr(self, "grid_frames", []):
+            f.destroy()
+
+    # ================================
     # Config
     # ================================
     def load_config(self):
@@ -185,6 +273,24 @@ class rtspviewer:
             )
             btn.pack(fill="x", padx=8, pady=4)
 
+        # Cycle streams toggle button
+        self.rotate_checkbox = tk.Checkbutton(
+            root,
+            text="Cycle streams",
+            variable=self.rotation_enabled,
+            command=self.toggle_rotation
+        )
+        self.rotate_checkbox.pack(anchor="w", padx=5, pady=5)
+
+        # Enable grid mode
+        self.grid_checkbox = tk.Checkbutton(
+            root,
+            text="Grid view (2x2)",
+            variable=self.grid_enabled,
+            command=self.toggle_grid
+        )
+        self.grid_checkbox.pack(anchor="w", padx=5, pady=2)
+
     # ================================
     # Hotkeys
     # ================================
@@ -217,6 +323,34 @@ class rtspviewer:
         self.root.after(200, lambda: self._start_media(url))
 
     def _start_media(self, url):
+        media = self.instance.media_new(url)
+        self.player.set_media(media)
+        self.player.play()
+
+    # ================================
+    # Cycle streams
+    # ================================
+    def schedule_rotation(self):
+
+        if not self.rotation_enabled.get():
+            return
+
+        self.switch_stream()
+
+        self.rotation_job = self.root.after(
+            self.switch_interval,
+            self.schedule_rotation
+        )
+
+    def switch_stream(self):
+
+        if not self.streams:
+            return
+
+        self.current_stream = (self.current_stream + 1) % len(self.streams)
+
+        url = self.streams[self.current_stream]['url']
+
         media = self.instance.media_new(url)
         self.player.set_media(media)
         self.player.play()
