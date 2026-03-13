@@ -88,6 +88,7 @@ class rtspviewer:
         # ---------- VLC ----------
         self.instance = vlc.Instance(
             "--network-caching=400",
+            "--no-xlib",
             "--rtsp-tcp",
             "--no-video-title-show",
             "--drop-late-frames",
@@ -177,9 +178,16 @@ class rtspviewer:
             # stop rotation
             self.rotation_enabled.set(False)
 
+            # stop main player
+            self.player.stop()
+
             if self.rotation_job:
                 self.root.after_cancel(self.rotation_job)
                 self.rotation_job = None
+
+            # Emptying the widgets
+            for widget in self.video_frame.winfo_children():
+                widget.destroy()
 
             self.create_grid()
 
@@ -208,9 +216,9 @@ class rtspviewer:
                 grid_window.grid_rowconfigure(r, weight=1)
                 grid_window.grid_columnconfigure(c, weight=1)
 
-                player = vlc.MediaPlayer()
+                player = self.instance.media_player_new()
 
-                frame.update()
+                self.root.update_idletasks()
                 player.set_hwnd(frame.winfo_id())
 
                 if index < len(self.streams):
@@ -279,6 +287,10 @@ class rtspviewer:
             text="Cycle streams",
             variable=self.rotation_enabled,
             command=self.toggle_rotation
+            bg="#2b2b2b",
+            fg="white",
+            relief="flat",
+            font=("Arial", 12),
         )
         self.rotate_checkbox.pack(anchor="w", padx=5, pady=5)
 
@@ -288,6 +300,10 @@ class rtspviewer:
             text="Grid view (2x2)",
             variable=self.grid_enabled,
             command=self.toggle_grid
+            bg="#2b2b2b",
+            fg="white",
+            relief="flat",
+            font=("Arial", 12),
         )
         self.grid_checkbox.pack(anchor="w", padx=5, pady=2)
 
