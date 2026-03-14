@@ -151,7 +151,7 @@ class rtspviewer:
     def _resize_sidebar(self, event):
         # Force inner frame to match canvas width
         self.canvas.itemconfig(self.canvas_window, width=event.width)
-        
+
     # ================================
     # Fullscreen
     # ================================
@@ -202,7 +202,11 @@ class rtspviewer:
             self.single_container.pack(fill="both", expand=True)
             self.root.update_idletasks()
             self.player.set_hwnd(self.video_panel.winfo_id())
-            self.open_stream(self.streams[self.current_stream])
+            url = self.streams[self.current_stream]['url']
+
+            media = self.instance.media_new(url)
+            self.player.set_media(media)
+            self.player.play()
 
     # ================================
     # Grid view
@@ -374,6 +378,7 @@ class rtspviewer:
         # self.current_stream = (self.current_stream + 1) % len(self.streams)
         if self.current_stream >= self.nbstreams: self.current_stream = 0
         url = self.streams[self.current_stream]['url']
+        self.player.stop()
 
         media = self.instance.media_new(url)
         self.player.set_media(media)
