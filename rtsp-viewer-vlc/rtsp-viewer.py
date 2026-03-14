@@ -2,6 +2,7 @@ import tkinter as tk
 import json
 import vlc
 import time
+import sys
 
 CONFIG_FILE = "config.json"
 WINDOW_WIDTH = 1100
@@ -25,6 +26,7 @@ class rtspviewer:
         self.rotation_enabled   = tk.BooleanVar(value=False)
         self.grid_enabled       = tk.BooleanVar(value=False)
         self.rotation_job       = None
+        self.updating_mode      = False
 
         self.current_url = None
         self.sidebar_visible = True
@@ -107,7 +109,10 @@ class rtspviewer:
         self.player = self.instance.media_player_new()
 
         self.root.update_idletasks()
-        self.player.set_xwindow(self.video_panel.winfo_id())
+        if sys.platform.startswith("linux"):
+            self.player.set_xwindow(self.video_panel.winfo_id())
+        else:
+            self.player.set_hwnd(self.video_panel.winfo_id())
 
         # ---------- Load config ----------
         self.streams = self.load_config()
@@ -167,10 +172,13 @@ class rtspviewer:
     # Enable cycle streams
     # ================================
     def toggle_rotation(self):
+        if self.updating_mode: return
 
         if self.rotation_enabled.get():
             # Disable grid
+            self.updating_mode = True
             self.grid_enabled.set(False)
+            self.updating_mode = False
             self.destroy_grid()
             self.schedule_rotation()
         else:
@@ -182,9 +190,13 @@ class rtspviewer:
     # Toggle Grid view
     # ================================
     def toggle_grid(self):
+        if self.updating_mode: return
+
         if self.grid_enabled.get():
             # stop rotation
+            self.updating_mode = True
             self.rotation_enabled.set(False)
+            self.updating_mode = False
             if self.rotation_job:
                 self.root.after_cancel(self.rotation_job)
             # stop player principal
@@ -201,7 +213,11 @@ class rtspviewer:
             # réafficher vue normale
             self.single_container.pack(fill="both", expand=True)
             self.root.update_idletasks()
-            self.player.set_hwnd(self.video_panel.winfo_id())
+            
+            if sys.platform.startswith("linux"):
+                self.player.set_xwindow(self.video_panel.winfo_id())
+            else:
+                self.player.set_hwnd(self.video_panel.winfo_id())
             url = self.streams[self.current_stream]['url']
 
             media = self.instance.media_new(url)
@@ -227,7 +243,10 @@ class rtspviewer:
                 self.root.update_idletasks()
 
                 player = self.instance.media_player_new()
-                player.set_hwnd(frame.winfo_id())
+                if sys.platform.startswith("linux"):
+                    player.set_xwindow(frame.winfo_id())
+                else:
+                    player.set_hwnd(frame.winfo_id())
 
                 index = r * 2 + c
 
@@ -379,6 +398,9 @@ class rtspviewer:
         if self.current_stream >= self.nbstreams: self.current_stream = 0
         url = self.streams[self.current_stream]['url']
         self.player.stop()
+        time.sleep(1)
+
+        # self.root.after(100, lambda: self._start_media(url))
 
         media = self.instance.media_new(url)
         self.player.set_media(media)
