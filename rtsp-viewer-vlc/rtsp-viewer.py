@@ -94,6 +94,7 @@ class rtspviewer:
         # ---------- VLC ----------
         self.instance = vlc.Instance(
             "--network-caching=400",
+            "--avcodec-hw=none",
             "--no-xlib",
             "--rtsp-tcp",
             "--no-video-title-show",
@@ -150,6 +151,7 @@ class rtspviewer:
     def _resize_sidebar(self, event):
         # Force inner frame to match canvas width
         self.canvas.itemconfig(self.canvas_window, width=event.width)
+        
     # ================================
     # Fullscreen
     # ================================
