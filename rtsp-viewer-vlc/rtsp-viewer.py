@@ -180,6 +180,12 @@ class rtspviewer:
             self.grid_enabled.set(False)
             self.updating_mode = False
             self.destroy_grid()
+
+            self.player.stop()
+            if sys.platform.startswith("linux"):    self.player.set_xwindow(self.video_panel.winfo_id())
+            else:                                   self.player.set_hwnd(self.video_panel.winfo_id())
+            self.root.update_idletasks()
+
             self.schedule_rotation()
         else:
             if self.rotation_job:
@@ -318,6 +324,9 @@ class rtspviewer:
             command=self.toggle_rotation,
             bg="#2b2b2b",
             fg="white",
+            selectcolor="#2b2b2b",
+            activebackground="#2b2b2b",
+            activeforeground="white",
             relief="flat",
             borderwidth=0,
             font=("Arial", 12)
@@ -332,6 +341,9 @@ class rtspviewer:
             command=self.toggle_grid,
             bg="#2b2b2b",
             fg="white",
+            selectcolor="#2b2b2b",
+            activebackground="#2b2b2b",
+            activeforeground="white",
             relief="flat",
             borderwidth=0,
             font=("Arial", 12)
@@ -394,17 +406,16 @@ class rtspviewer:
         if not self.streams:
             return
 
-        # self.current_stream = (self.current_stream + 1) % len(self.streams)
         if self.current_stream >= self.nbstreams: self.current_stream = 0
         url = self.streams[self.current_stream]['url']
         self.player.stop()
         time.sleep(1)
 
-        # self.root.after(100, lambda: self._start_media(url))
+        self.root.after(100, lambda: self._start_media(url))
 
-        media = self.instance.media_new(url)
-        self.player.set_media(media)
-        self.player.play()
+        # media = self.instance.media_new(url)
+        # self.player.set_media(media)
+        # self.player.play()
         
         self.current_stream += 1
 
