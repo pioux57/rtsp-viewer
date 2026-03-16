@@ -130,6 +130,7 @@ class rtspviewer:
         # Auto start
         if self.streams:
             self.play_stream(self.streams[0]["url"])
+            self.monitor_stream()
 
     # ================================
     # Scroll wheel
@@ -382,7 +383,14 @@ class rtspviewer:
         self.root.after(200, lambda: self._start_media(url))
 
     def _start_media(self, url):
-        media = self.instance.media_new(url)
+        media = self.instance.media_new(
+            url,
+            ":network-caching=400",
+            ":rtsp-tcp",
+            ":live-caching=300",
+            ":drop-late-frames",
+            ":skip-frames"
+        )
         self.player.set_media(media)
         self.player.play()
 
@@ -418,6 +426,19 @@ class rtspviewer:
         # self.player.play()
         
         self.current_stream += 1
+
+    def monitor_stream(self):
+        state = self.player.get_state()
+        if state in [vlc.State.Error, vlc.State.Ended]:
+            print("Stream error detected, restarting...")
+            self.restart_stream()
+        self.root.after(10000, self.monitor_stream)
+
+    def restart_stream(self):
+        if not self.current_url:
+            return
+        self.player.stop()
+        self.root.after(200, lambda: self._start_media(self.current_url))
 
     # ================================
     # Cleanup
